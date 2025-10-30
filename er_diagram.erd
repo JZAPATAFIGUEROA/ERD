@@ -1,0 +1,222 @@
+// ERD (human-readable) - updated to bigER attribute syntax (attribute: TYPE [classifier])
+// Matches `sales_model.erd` for consistency.
+
+erdiagram SalesModel_Overview
+
+notation=crowsfoot
+
+-- Tables / Entities
+
+entity Customer {
+  customer_id: INTEGER key
+  customer_code: VARCHAR(50)
+  first_name: VARCHAR(100)
+  last_name: VARCHAR(100)
+  email: VARCHAR(255)
+  phone: VARCHAR(50)
+  billing_address: TEXT
+  shipping_address: TEXT
+  customer_since: DATE
+  source: VARCHAR(50)
+  marketing_opt_in: BOOLEAN
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+entity Vendor {
+  vendor_id: INTEGER key
+  vendor_code: VARCHAR(50)
+  name: VARCHAR(255)
+  contact_info: TEXT
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+   - created_at
+   - updated_at
+   - is_deleted
+
+entity Product {
+  product_id: INTEGER key
+  sku: VARCHAR(100)
+  name: VARCHAR(255)
+  description: TEXT
+  vendor_id: INTEGER
+  unit_price: DECIMAL(12,2)
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+entity Inventory {
+  inventory_id: INTEGER key
+  product_id: INTEGER
+  quantity_on_hand: INTEGER
+  reorder_point: INTEGER
+  last_counted_at: TIMESTAMP
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+entity Invoice {
+  invoice_id: INTEGER key
+  invoice_num: VARCHAR(50)
+  customer_id: INTEGER
+  invoice_date: DATE
+  status: VARCHAR(50)
+  total_amount: DECIMAL(14,2)
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+entity InvoiceLine {
+  line_id: INTEGER key
+  invoice_id: INTEGER
+  line_number: INTEGER
+  product_id: INTEGER
+  quantity: INTEGER
+  unit_price: DECIMAL(12,2)
+  line_total: DECIMAL(14,2)
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+entity Promotion {
+  promo_id: INTEGER key
+  promo_code: VARCHAR(100)
+  description: TEXT
+  start_date: DATE
+  end_date: DATE
+  customer_id: INTEGER
+  discount_pct: DECIMAL(5,2)
+  created_at: TIMESTAMP
+  updated_at: TIMESTAMP
+}
+
+
+
+// Relationships (cardinality syntax compatible with bigER)
+relationship Places {
+  Customer[1] -> Invoice[0..N]
+}
+
+relationship Contains {
+  Invoice[1] -> InvoiceLine[1..N]
+}
+
+relationship LineHasProduct {
+  InvoiceLine[1] -> Product[1]
+}
+
+relationship Supplies {
+  Vendor[1] -> Product[0..N]
+}
+
+relationship HasInventory {
+  Product[1] -> Inventory[0..1]
+}
+
+relationship ReceivesPromo {
+  Customer[1] -> Promotion[0..N]
+}
+
+// Notes:
+// - Use `key` classifier for PKs and add `fk` if you want to mark FKs explicitly.
+// - `invoice_num`, `sku`, `promo_code` should be UNIQUE in the physical model.
+// - If you need warehouses, change Inventory relationship to Product[1] -> Inventory[0..N] with warehouse attribute.
+
+// PlantUML (optional render):
+@startuml
+entity Customer {
+  * customer_id : INTEGER
+  --
+  customer_code : VARCHAR(50)
+  first_name : VARCHAR(100)
+  last_name : VARCHAR(100)
+}
+
+entity Invoice {
+  * invoice_id : INTEGER
+}
+
+Customer ||--o{ Invoice : places
+Invoice ||--|{ InvoiceLine : contains
+Product ||--o{ InvoiceLine : referenced_by
+Vendor ||--o{ Product : supplies
+Product ||--|| Inventory : has
+Customer ||--o{ Promotion : receives
+@enduml
+
+-- End of ERD (updated)
+
+
+-- PlantUML snippet (paste into PlantUML to render a diagram)
+@startuml
+!define Table(x) entity x
+
+Table(Customer) {
+  * customer_id : BIGSERIAL
+  --
+  customer_code : VARCHAR
+  name : VARCHAR
+  email : VARCHAR
+  phone : VARCHAR
+}
+
+Table(Vendor) {
+  * vendor_id : BIGSERIAL
+  --
+  vendor_code : VARCHAR
+  name : VARCHAR
+}
+
+Table(Product) {
+  * product_id : BIGSERIAL
+  --
+  sku : VARCHAR
+  name : VARCHAR
+  vendor_id : BIGINT
+  unit_price : NUMERIC
+}
+
+Table(Inventory) {
+  * inventory_id : BIGSERIAL
+  --
+  product_id : BIGINT
+  quantity_on_hand : INTEGER
+}
+
+Table(Invoice) {
+  * invoice_id : BIGSERIAL
+  --
+  invoice_num : VARCHAR
+  customer_id : BIGINT
+  invoice_date : DATE
+  total_amount : NUMERIC
+}
+
+Table(Invoice_Line) {
+  * line_id : BIGSERIAL
+  --
+  invoice_id : BIGINT
+  line_number : INTEGER
+  product_id : BIGINT
+  quantity : INTEGER
+}
+
+Table(Promotion) {
+  * promo_id : BIGSERIAL
+  --
+  promo_code : VARCHAR
+  customer_id : BIGINT
+  discount_pct : NUMERIC
+}
+
+Customer ||--o{ Invoice : "places"
+Invoice ||--|{ Invoice_Line : "contains"
+Product ||--o{ Invoice_Line : "is_line_for"
+Vendor ||--o{ Product : "supplies"
+Product ||--|| Inventory : "has"
+Customer ||--o{ Promotion : "receives"
+
+@enduml
+
+-- End of ERD entities file
